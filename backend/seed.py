@@ -38,6 +38,7 @@ PRODUCTS = [
 ]
 
 def seed_database():
+    random.seed(42)
     logger.info("Starting seed process...")
     
     # 1. Seed Warehouses
