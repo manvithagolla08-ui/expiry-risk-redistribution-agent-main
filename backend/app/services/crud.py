@@ -58,6 +58,10 @@ def get_demand_history() -> List[dict]:
     response = supabase_client.table('demand_history').select('*').execute()
     return response.data
 
+def get_demand_history_by_id(history_id: UUID) -> Optional[dict]:
+    response = supabase_client.table('demand_history').select('*').eq('id', str(history_id)).execute()
+    return response.data[0] if response.data else None
+
 def create_demand_history(history: DemandHistoryCreate) -> dict:
     data = history.model_dump()
     data['date'] = data['date'].isoformat()

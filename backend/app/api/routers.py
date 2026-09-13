@@ -65,6 +65,13 @@ def create_inventory_batch(batch: InventoryBatchCreate):
 def read_demand_history():
     return crud.get_demand_history()
 
+@router.get("/demand-history/{history_id}", response_model=DemandHistory)
+def read_demand_history_by_id(history_id: UUID):
+    db_obj = crud.get_demand_history_by_id(history_id)
+    if db_obj is None:
+        raise HTTPException(status_code=404, detail="Demand History not found")
+    return db_obj
+
 @router.post("/demand-history", response_model=DemandHistory)
 def create_demand_history(history: DemandHistoryCreate):
     return crud.create_demand_history(history)
