@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
-import type { 
-  Warehouse, Product, InventoryBatch, RiskScoreResponse, RedistributionRecommendation 
+import type {
+  Warehouse, Product, InventoryBatch, RiskScoreResponse, RedistributionRecommendation
 } from '../types/analytics';
 
 import { Sidebar } from '../components/dashboard/Sidebar';
@@ -19,14 +20,14 @@ import { Package, AlertTriangle, TrendingDown, Leaf } from 'lucide-react';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   // Data State
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [inventory, setInventory] = useState<InventoryBatch[]>([]);
   const [riskScores, setRiskScores] = useState<RiskScoreResponse[]>([]);
   const [recommendations, setRecommendations] = useState<RedistributionRecommendation[]>([]);
-  
+
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function Dashboard() {
           api.getRiskScores(),
           api.getRecommendations()
         ]);
-        
+
         setWarehouses(whData);
         setProducts(prodData);
         setInventory(invData);
@@ -55,22 +56,22 @@ export function Dashboard() {
         setIsLoading(false);
       }
     }
-    
+
     loadData();
   }, []);
 
   // Memos for lookups
-  const productMap = useMemo(() => 
-    products.reduce((acc, p) => ({ ...acc, [p.id]: p.name }), {} as Record<string, string>), 
-  [products]);
+  const productMap = useMemo(() =>
+    products.reduce((acc, p) => ({ ...acc, [p.id]: p.name }), {} as Record<string, string>),
+    [products]);
 
-  const warehouseMap = useMemo(() => 
-    warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w.name }), {} as Record<string, string>), 
-  [warehouses]);
+  const warehouseMap = useMemo(() =>
+    warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w.name }), {} as Record<string, string>),
+    [warehouses]);
 
-  const batchMap = useMemo(() => 
-    inventory.reduce((acc, b) => ({ ...acc, [b.id]: b }), {} as Record<string, InventoryBatch>), 
-  [inventory]);
+  const batchMap = useMemo(() =>
+    inventory.reduce((acc, b) => ({ ...acc, [b.id]: b }), {} as Record<string, InventoryBatch>),
+    [inventory]);
 
   // Enriched Data
   const riskTableData: RiskRowData[] = useMemo(() => {
@@ -96,20 +97,20 @@ export function Dashboard() {
 
   // KPIs
   const totalInventory = useMemo(() => inventory.reduce((sum, b) => sum + b.quantity, 0), [inventory]);
-  
+
   const atRiskInventory = useMemo(() => {
     return riskTableData
       .filter(r => r.risk_level === 'HIGH' || r.risk_level === 'CRITICAL')
       .reduce((sum, r) => sum + r.quantity, 0);
   }, [riskTableData]);
-  
+
   const potentialExcess = useMemo(() => {
     return riskScores.reduce((sum, r) => sum + Math.max(0, r.potential_excess), 0);
   }, [riskScores]);
 
   // Render main content based on active tab (or just show all in a big scrolling dashboard)
   // We'll show a combined scrolling dashboard for the main tab, and scroll to sections for others.
-  
+
   if (error) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -117,7 +118,7 @@ export function Dashboard() {
           <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
           <h2 className="text-xl font-bold text-slate-800 mb-2">Error Loading Dashboard</h2>
           <p className="text-slate-600 text-sm mb-6">{error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
@@ -131,13 +132,13 @@ export function Dashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      
+
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header />
-        
+
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-8">
-            
+
             {/* Header Area */}
             <div>
               <h1 className="text-2xl font-bold text-slate-800">Inventory Overview</h1>
@@ -146,33 +147,33 @@ export function Dashboard() {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <KPICard 
-                title="Total Inventory" 
-                value={totalInventory.toLocaleString()} 
-                subtitle="Units across all locations" 
-                icon={Package} 
-                isLoading={isLoading} 
+              <KPICard
+                title="Total Inventory"
+                value={totalInventory.toLocaleString()}
+                subtitle="Units across all locations"
+                icon={Package}
+                isLoading={isLoading}
               />
-              <KPICard 
-                title="At-Risk Inventory" 
-                value={atRiskInventory.toLocaleString()} 
-                subtitle="High & Critical risk units" 
-                icon={AlertTriangle} 
-                isLoading={isLoading} 
+              <KPICard
+                title="At-Risk Inventory"
+                value={atRiskInventory.toLocaleString()}
+                subtitle="High & Critical risk units"
+                icon={AlertTriangle}
+                isLoading={isLoading}
               />
-              <KPICard 
-                title="Potential Excess" 
-                value={Math.round(potentialExcess).toLocaleString()} 
-                subtitle="Units above forecasted demand" 
-                icon={TrendingDown} 
-                isLoading={isLoading} 
+              <KPICard
+                title="Potential Excess"
+                value={Math.round(potentialExcess).toLocaleString()}
+                subtitle="Units above forecasted demand"
+                icon={TrendingDown}
+                isLoading={isLoading}
               />
-              <KPICard 
-                title="Waste Avoided" 
-                value="No sim run" 
-                subtitle="Run simulation to estimate" 
-                icon={Leaf} 
-                isLoading={isLoading} 
+              <KPICard
+                title="Waste Avoided"
+                value="No sim run"
+                subtitle="Run simulation to estimate"
+                icon={Leaf}
+                isLoading={isLoading}
               />
             </div>
 
@@ -182,9 +183,9 @@ export function Dashboard() {
                 <RiskDistributionChart data={riskScores} isLoading={isLoading} />
               </div>
               <div className="lg:col-span-2">
-                <DemandForecastChart 
+                <DemandForecastChart
                   data={null} // Passing null as we need selection for Forecast, handled below or as a placeholder
-                  isLoading={isLoading} 
+                  isLoading={isLoading}
                 />
               </div>
             </div>
