@@ -108,8 +108,20 @@ export function Dashboard() {
     return riskScores.reduce((sum, r) => sum + Math.max(0, r.potential_excess), 0);
   }, [riskScores]);
 
-  // Render main content based on active tab (or just show all in a big scrolling dashboard)
-  // We'll show a combined scrolling dashboard for the main tab, and scroll to sections for others.
+  // Scroll to matching section whenever the active sidebar tab changes
+  useEffect(() => {
+    const sectionMap: Record<string, string> = {
+      dashboard: 'dashboard-section',
+      risk: 'risk-section',
+      demand: 'demand-section',
+      redistribution: 'redistribution-section',
+      simulation: 'simulation-section',
+    };
+    const sectionId = sectionMap[activeTab];
+    if (sectionId) {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [activeTab]);
 
   if (error) {
     return (
@@ -139,42 +151,42 @@ export function Dashboard() {
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-8">
 
-            {/* Header Area */}
-            <div>
+            {/* Header Area + KPIs — dashboard-section */}
+            <div id="dashboard-section">
               <h1 className="text-2xl font-bold text-slate-800">Inventory Overview</h1>
               <p className="text-slate-500 mt-1">Monitor risk, forecast demand, and redistribute excess.</p>
-            </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <KPICard
-                title="Total Inventory"
-                value={totalInventory.toLocaleString()}
-                subtitle="Units across all locations"
-                icon={Package}
-                isLoading={isLoading}
-              />
-              <KPICard
-                title="At-Risk Inventory"
-                value={atRiskInventory.toLocaleString()}
-                subtitle="High & Critical risk units"
-                icon={AlertTriangle}
-                isLoading={isLoading}
-              />
-              <KPICard
-                title="Potential Excess"
-                value={Math.round(potentialExcess).toLocaleString()}
-                subtitle="Units above forecasted demand"
-                icon={TrendingDown}
-                isLoading={isLoading}
-              />
-              <KPICard
-                title="Waste Avoided"
-                value="No sim run"
-                subtitle="Run simulation to estimate"
-                icon={Leaf}
-                isLoading={isLoading}
-              />
+              {/* KPIs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                <KPICard
+                  title="Total Inventory"
+                  value={totalInventory.toLocaleString()}
+                  subtitle="Units across all locations"
+                  icon={Package}
+                  isLoading={isLoading}
+                />
+                <KPICard
+                  title="At-Risk Inventory"
+                  value={atRiskInventory.toLocaleString()}
+                  subtitle="High & Critical risk units"
+                  icon={AlertTriangle}
+                  isLoading={isLoading}
+                />
+                <KPICard
+                  title="Potential Excess"
+                  value={Math.round(potentialExcess).toLocaleString()}
+                  subtitle="Units above forecasted demand"
+                  icon={TrendingDown}
+                  isLoading={isLoading}
+                />
+                <KPICard
+                  title="Waste Avoided"
+                  value="No sim run"
+                  subtitle="Run simulation to estimate"
+                  icon={Leaf}
+                  isLoading={isLoading}
+                />
+              </div>
             </div>
 
             {/* Top Charts Row */}
@@ -182,7 +194,8 @@ export function Dashboard() {
               <div className="lg:col-span-1">
                 <RiskDistributionChart data={riskScores} isLoading={isLoading} />
               </div>
-              <div className="lg:col-span-2">
+              {/* demand-section wraps the Demand Forecast chart */}
+              <div id="demand-section" className="lg:col-span-2">
                 <DemandForecastChart
                   data={null} // Passing null as we need selection for Forecast, handled below or as a placeholder
                   isLoading={isLoading}
@@ -190,17 +203,19 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Main Risk Table */}
-            <div>
+            {/* Main Risk Table — risk-section */}
+            <div id="risk-section">
               <RiskTable data={riskTableData} isLoading={isLoading} />
             </div>
 
             {/* Action Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
+              {/* redistribution-section */}
+              <div id="redistribution-section">
                 <RedistributionRecommendations data={recTableData} isLoading={isLoading} />
               </div>
-              <div>
+              {/* simulation-section */}
+              <div id="simulation-section">
                 <SimulationCard recommendations={recTableData} />
               </div>
             </div>
