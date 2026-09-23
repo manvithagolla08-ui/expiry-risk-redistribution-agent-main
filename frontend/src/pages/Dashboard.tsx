@@ -20,6 +20,7 @@ import { Package, AlertTriangle, TrendingDown, Leaf } from 'lucide-react';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Data State
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -108,6 +109,17 @@ export function Dashboard() {
     return riskScores.reduce((sum, r) => sum + Math.max(0, r.potential_excess), 0);
   }, [riskScores]);
 
+  // Filter riskTableData by searchQuery (product name or warehouse name, case-insensitive)
+  const filteredRiskTableData: RiskRowData[] = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return riskTableData;
+    return riskTableData.filter(
+      (row) =>
+        row.product_name.toLowerCase().includes(q) ||
+        row.warehouse_name.toLowerCase().includes(q)
+    );
+  }, [riskTableData, searchQuery]);
+
   // Scroll to matching section whenever the active sidebar tab changes
   useEffect(() => {
     const sectionMap: Record<string, string> = {
@@ -146,7 +158,7 @@ export function Dashboard() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header />
+        <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -205,7 +217,7 @@ export function Dashboard() {
 
             {/* Main Risk Table — risk-section */}
             <div id="risk-section">
-              <RiskTable data={riskTableData} isLoading={isLoading} />
+              <RiskTable data={filteredRiskTableData} isLoading={isLoading} />
             </div>
 
             {/* Action Row */}
