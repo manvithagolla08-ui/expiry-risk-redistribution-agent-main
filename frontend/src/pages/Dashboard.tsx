@@ -2,7 +2,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import type {
-  Warehouse, Product, InventoryBatch, RiskScoreResponse, RedistributionRecommendation
+  Warehouse, Product, InventoryBatch, RiskScoreResponse, RedistributionRecommendation,
+  ForecastResponse
 } from '../types/analytics';
 
 import { Sidebar } from '../components/dashboard/Sidebar';
@@ -21,6 +22,12 @@ import { Package, AlertTriangle, TrendingDown, Leaf } from 'lucide-react';
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Forecast selector state
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+  const [forecast, setForecast] = useState<ForecastResponse | null>(null);
+  const [isForecastLoading, setIsForecastLoading] = useState(false);
 
   // Data State
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -120,6 +127,25 @@ export function Dashboard() {
     );
   }, [riskTableData, searchQuery]);
 
+  // Fetch forecast whenever both product and warehouse are selected
+  useEffect(() => {
+    if (!selectedProductId || !selectedWarehouseId) {
+      setForecast(null);
+      return;
+    }
+    let cancelled = false;
+    setIsForecastLoading(true);
+    api.getForecast(selectedProductId, selectedWarehouseId)
+      .then((data) => { if (!cancelled) setForecast(data); })
+      .catch(() => { if (!cancelled) setForecast(null); })
+      .finally(() => { if (!cancelled) setIsForecastLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedProductId, selectedWarehouseId]);
+
+  // Derive display names for the selected forecast combination
+  const selectedProductName = productMap[selectedProductId] ?? '';
+  const selectedWarehouseName = warehouseMap[selectedWarehouseId] ?? '';
+
   // Scroll to matching section whenever the active sidebar tab changes
   useEffect(() => {
     const sectionMap: Record<string, string> = {
@@ -209,8 +235,16 @@ export function Dashboard() {
               {/* demand-section wraps the Demand Forecast chart */}
               <div id="demand-section" className="lg:col-span-2">
                 <DemandForecastChart
-                  data={null} // Passing null as we need selection for Forecast, handled below or as a placeholder
-                  isLoading={isLoading}
+                  data={forecast}
+                  productName={selectedProductName}
+                  warehouseName={selectedWarehouseName}
+                  isLoading={isForecastLoading}
+                  products={products}
+                  warehouses={warehouses}
+                  selectedProductId={selectedProductId}
+                  selectedWarehouseId={selectedWarehouseId}
+                  onProductChange={setSelectedProductId}
+                  onWarehouseChange={setSelectedWarehouseId}
                 />
               </div>
             </div>
