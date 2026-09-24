@@ -28,6 +28,70 @@ const RiskBadge = ({ level }: { level: string }) => {
   );
 };
 
+/** Visual progress bar for risk_score (0–100). Uses actual risk_score value only. */
+const RiskProgressBar = ({ score }: { score: number }) => {
+  const clamped = Math.min(100, Math.max(0, score));
+
+  let barColor: string;
+  if (clamped >= 75) {
+    barColor = 'bg-red-500';
+  } else if (clamped >= 50) {
+    barColor = 'bg-orange-400';
+  } else if (clamped >= 25) {
+    barColor = 'bg-yellow-400';
+  } else {
+    barColor = 'bg-green-400';
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <span className="text-sm font-semibold text-slate-800 tabular-nums">
+        {score.toFixed(1)}
+      </span>
+      <div
+        className="w-24 h-2 rounded-full bg-slate-100 overflow-hidden"
+        role="progressbar"
+        aria-valuenow={clamped}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Risk score ${score.toFixed(1)} out of 100`}
+      >
+        <div
+          className={clsx('h-full rounded-full transition-all duration-500', barColor)}
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/** Days to Expiry cell with tiered urgency styling. */
+const DaysToExpiryCell = ({ days }: { days: number }) => {
+  let textClass: string;
+  let icon: string | null = null;
+
+  if (days <= 7) {
+    textClass = 'text-red-600 font-bold';
+    icon = '🔴';
+  } else if (days <= 30) {
+    textClass = 'text-orange-500 font-semibold';
+    icon = '🟠';
+  } else if (days <= 60) {
+    textClass = 'text-yellow-600 font-medium';
+    icon = '🟡';
+  } else {
+    textClass = 'text-slate-600';
+    icon = null;
+  }
+
+  return (
+    <span className={clsx('inline-flex items-center gap-1', textClass)}>
+      {icon && <span className="text-xs leading-none">{icon}</span>}
+      {days}
+    </span>
+  );
+};
+
 export function RiskTable({ data, isLoading }: RiskTableProps) {
   if (isLoading) {
     return (
@@ -40,7 +104,7 @@ export function RiskTable({ data, isLoading }: RiskTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex items-center justify-center min-h-[300px]">
-        <div className="text-slate-400">No high-risk inventory found.</div>
+        <div className="text-slate-400">No inventory risk data found.</div>
       </div>
     );
   }
@@ -54,8 +118,9 @@ export function RiskTable({ data, isLoading }: RiskTableProps) {
         <h3 className="text-lg font-semibold text-slate-800">Inventory at Risk</h3>
         <p className="text-sm text-slate-500">Batches sorted by expiry risk score</p>
       </div>
+      {/* overflow-x-auto keeps the table scrollable on smaller screens */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-left" style={{ minWidth: '720px' }}>
           <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-3">Product</th>
@@ -74,12 +139,14 @@ export function RiskTable({ data, isLoading }: RiskTableProps) {
                 <td className="px-6 py-4 text-slate-600">{row.warehouse_name}</td>
                 <td className="px-6 py-4 text-right text-slate-600">{row.quantity}</td>
                 <td className="px-6 py-4 text-right">
-                  <span className={row.days_to_expiry < 30 ? "text-red-600 font-semibold" : "text-slate-600"}>
-                    {row.days_to_expiry}
-                  </span>
+                  <DaysToExpiryCell days={row.days_to_expiry} />
                 </td>
-                <td className="px-6 py-4 text-right text-slate-600">{Math.max(0, Math.round(row.potential_excess))}</td>
-                <td className="px-6 py-4 text-right font-medium text-slate-800">{row.risk_score.toFixed(1)}</td>
+                <td className="px-6 py-4 text-right text-slate-600">
+                  {Math.max(0, Math.round(row.potential_excess))}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <RiskProgressBar score={row.risk_score} />
+                </td>
                 <td className="px-6 py-4 text-center">
                   <RiskBadge level={row.risk_level} />
                 </td>
