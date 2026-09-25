@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, TrendingUp, RefreshCw, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, TrendingUp, RefreshCw, BarChart2, Package2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface SidebarProps {
@@ -6,44 +6,55 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
-export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'risk', label: 'Inventory Risk', icon: AlertTriangle },
-    { id: 'demand', label: 'Demand Forecast', icon: TrendingUp },
-    { id: 'redistribution', label: 'Redistribution', icon: RefreshCw },
-    { id: 'simulation', label: 'Simulation', icon: BarChart2 },
-  ];
+const NAV_ITEMS = [
+  { id: 'dashboard',      label: 'Dashboard',       icon: LayoutDashboard },
+  { id: 'risk',           label: 'Inventory Risk',  icon: AlertTriangle   },
+  { id: 'demand',         label: 'Demand Forecast', icon: TrendingUp      },
+  { id: 'redistribution', label: 'Redistribution',  icon: RefreshCw       },
+  { id: 'simulation',     label: 'Simulation',      icon: BarChart2       },
+];
 
+export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 min-h-screen flex flex-col">
-      <div className="p-6">
-        <div className="flex items-center gap-3 text-white font-bold text-xl tracking-tight">
-          <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
-            <RefreshCw size={18} className="text-white" />
+    <aside className="w-64 bg-slate-900 text-slate-300 min-h-screen flex flex-col shrink-0 border-r border-slate-800">
+
+      {/* ── Branding ─────────────────────────────────────── */}
+      <div className="px-5 py-6 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-sm">
+            <Package2 size={16} className="text-white" />
           </div>
-          Expiry Agent
+          <div>
+            <p className="text-white font-semibold text-sm leading-tight tracking-tight">Expiry Agent</p>
+            <p className="text-slate-500 text-xs leading-tight mt-0.5">Inventory Intelligence</p>
+          </div>
         </div>
       </div>
-      
-      <nav className="flex-1 mt-6">
-        <ul className="space-y-1">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+
+      {/* ── Navigation ───────────────────────────────────── */}
+      <nav className="flex-1 px-3 py-4">
+        <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest px-3 mb-3">
+          Navigation
+        </p>
+        <ul className="space-y-0.5">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+            const isActive = activeTab === id;
             return (
-              <li key={tab.id} className="px-3">
+              <li key={id}>
                 <button
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => setActiveTab(id)}
                   className={clsx(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    isActive 
-                      ? "bg-blue-600/10 text-blue-400" 
-                      : "hover:bg-slate-800 hover:text-white"
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
                   )}
                 >
-                  <Icon size={18} className={clsx(isActive ? "text-blue-500" : "text-slate-500")} />
-                  {tab.label}
+                  <Icon
+                    size={16}
+                    className={clsx('shrink-0', isActive ? 'text-white' : 'text-slate-500')}
+                  />
+                  {label}
                 </button>
               </li>
             );
@@ -51,8 +62,11 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </ul>
       </nav>
 
-      <div className="p-6 text-xs text-slate-500">
-        <p>SH-204 Hackathon Project</p>
+      {/* ── Footer ───────────────────────────────────────── */}
+      <div className="px-5 py-4 border-t border-slate-800">
+        <p className="text-xs text-slate-600 leading-relaxed">
+          SH-204 · Hackathon Project
+        </p>
       </div>
     </aside>
   );

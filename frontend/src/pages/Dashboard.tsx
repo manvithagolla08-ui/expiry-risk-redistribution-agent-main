@@ -183,22 +183,24 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto space-y-8">
+          <div className="max-w-7xl mx-auto space-y-7">
 
             {/* Header Area + KPIs — dashboard-section */}
-            <div id="dashboard-section">
-              <h1 className="text-2xl font-bold text-slate-800">Inventory Overview</h1>
-              <p className="text-slate-500 mt-1">Monitor risk, forecast demand, and redistribute excess.</p>
+            <div id="dashboard-section" className="space-y-5">
+              <div className="pb-1 border-b border-slate-200">
+                <h1 className="text-xl font-bold text-slate-800 tracking-tight">Inventory Intelligence</h1>
+                <p className="text-sm text-slate-500 mt-0.5">Monitor expiry risk, forecast demand, and act on redistribution opportunities.</p>
+              </div>
 
               {/* KPIs */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
                   title="Total Inventory"
                   value={totalInventory.toLocaleString()}
@@ -211,6 +213,7 @@ export function Dashboard() {
                   value={atRiskInventory.toLocaleString()}
                   subtitle="High & Critical risk units"
                   icon={AlertTriangle}
+                  urgent={atRiskInventory > 0}
                   isLoading={isLoading}
                 />
                 <KPICard
@@ -218,6 +221,7 @@ export function Dashboard() {
                   value={Math.round(potentialExcess).toLocaleString()}
                   subtitle="Units above forecasted demand"
                   icon={TrendingDown}
+                  urgent={potentialExcess > 0}
                   isLoading={isLoading}
                 />
                 <KPICard
