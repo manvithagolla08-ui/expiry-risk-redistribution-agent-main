@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import type { RiskScoreResponse } from '../../types/analytics';
+import { api } from '../../services/api';
 import { clsx } from 'clsx';
+import { Sparkles, X } from 'lucide-react';
 
 
 export interface RiskRowData extends RiskScoreResponse {
@@ -12,6 +15,13 @@ interface RiskTableProps {
   data: RiskRowData[];
   isLoading: boolean;
 }
+
+// ── Explanation panel state per row ──────────────────────────────────────────
+type ExplainState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; text: string }
+  | { status: 'error' };
 
 const RiskBadge = ({ level }: { level: string }) => {
   const styles = {
@@ -92,7 +102,106 @@ const DaysToExpiryCell = ({ days }: { days: number }) => {
   );
 };
 
+// ── AI Explanation Panel ──────────────────────────────────────────────────────
+interface ExplainPanelProps {
+  row: RiskRowData;
+  state: ExplainState;
+  onRequest: () => void;
+  onDismiss: () => void;
+}
+
+function ExplainPanel({ row, state, onRequest, onDismiss }: ExplainPanelProps) {
+  return (
+    <tr>
+      {/* span all 8 columns (7 data + 1 AI action) */}
+      <td colSpan={8} className="px-6 pb-4 pt-0">
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-blue-700 font-semibold text-sm">
+              <Sparkles size={15} />
+              AI Explanation — {row.product_name} @ {row.warehouse_name}
+            </div>
+            <button
+              onClick={onDismiss}
+              className="text-slate-400 hover:text-slate-600 transition-colors"
+              aria-label="Dismiss explanation"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* Body */}
+          {state.status === 'loading' && (
+            <p className="text-sm text-slate-500 italic">Generating explanation…</p>
+          )}
+          {state.status === 'success' && (
+            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+              {state.text}
+            </p>
+          )}
+          {state.status === 'error' && (
+            <p className="text-sm text-red-600">
+              AI explanation is currently unavailable. Please try again later.
+            </p>
+          )}
+
+          {/* Re-request button when in error state */}
+          {state.status === 'error' && (
+            <button
+              onClick={onRequest}
+              className="mt-2 text-xs text-blue-600 hover:underline"
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export function RiskTable({ data, isLoading }: RiskTableProps) {
+  // Map: batch_id -> ExplainState
+  const [explainStates, setExplainStates] = useState<Record<string, ExplainState>>({});
+
+  function setRowState(batchId: string, state: ExplainState) {
+    setExplainStates(prev => ({ ...prev, [batchId]: state }));
+  }
+
+  async function handleExplain(row: RiskRowData) {
+    const batchId = row.batch_id;
+    const current = explainStates[batchId];
+
+    // Toggle off if already showing a result
+    if (current?.status === 'success' || current?.status === 'error') {
+      setRowState(batchId, { status: 'idle' });
+      return;
+    }
+
+    setRowState(batchId, { status: 'loading' });
+
+    try {
+      const result = await api.explainInventory({
+        product_name: row.product_name,
+        warehouse_name: row.warehouse_name,
+        quantity: row.quantity,
+        days_to_expiry: row.days_to_expiry,
+        risk_score: row.risk_score,
+        risk_level: row.risk_level,
+        potential_excess: row.potential_excess,
+      });
+      setRowState(batchId, { status: 'success', text: result.explanation });
+    } catch {
+      setRowState(batchId, { status: 'error' });
+    }
+  }
+
+  function handleDismiss(batchId: string) {
+    setRowState(batchId, { status: 'idle' });
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex items-center justify-center min-h-[300px]">
@@ -120,7 +229,7 @@ export function RiskTable({ data, isLoading }: RiskTableProps) {
       </div>
       {/* overflow-x-auto keeps the table scrollable on smaller screens */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left" style={{ minWidth: '720px' }}>
+        <table className="w-full text-sm text-left" style={{ minWidth: '820px' }}>
           <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-3">Product</th>
@@ -130,28 +239,73 @@ export function RiskTable({ data, isLoading }: RiskTableProps) {
               <th className="px-6 py-3 text-right">Potential Excess</th>
               <th className="px-6 py-3 text-right">Risk Score</th>
               <th className="px-6 py-3 text-center">Level</th>
+              <th className="px-6 py-3 text-center">AI</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sortedData.map((row) => (
-              <tr key={row.batch_id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-slate-800">{row.product_name}</td>
-                <td className="px-6 py-4 text-slate-600">{row.warehouse_name}</td>
-                <td className="px-6 py-4 text-right text-slate-600">{row.quantity}</td>
-                <td className="px-6 py-4 text-right">
-                  <DaysToExpiryCell days={row.days_to_expiry} />
-                </td>
-                <td className="px-6 py-4 text-right text-slate-600">
-                  {Math.max(0, Math.round(row.potential_excess))}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <RiskProgressBar score={row.risk_score} />
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <RiskBadge level={row.risk_level} />
-                </td>
-              </tr>
-            ))}
+            {sortedData.map((row) => {
+              const state: ExplainState = explainStates[row.batch_id] ?? { status: 'idle' };
+              const isActive = state.status !== 'idle';
+              const isLoading = state.status === 'loading';
+
+              return (
+                <>
+                  <tr
+                    key={row.batch_id}
+                    className={clsx(
+                      'hover:bg-slate-50 transition-colors',
+                      isActive && 'bg-blue-50/40'
+                    )}
+                  >
+                    <td className="px-6 py-4 font-medium text-slate-800">{row.product_name}</td>
+                    <td className="px-6 py-4 text-slate-600">{row.warehouse_name}</td>
+                    <td className="px-6 py-4 text-right text-slate-600">{row.quantity}</td>
+                    <td className="px-6 py-4 text-right">
+                      <DaysToExpiryCell days={row.days_to_expiry} />
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {Math.max(0, Math.round(row.potential_excess))}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <RiskProgressBar score={row.risk_score} />
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <RiskBadge level={row.risk_level} />
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        id={`explain-btn-${row.batch_id}`}
+                        onClick={() => handleExplain(row)}
+                        disabled={isLoading}
+                        title={isActive ? 'Dismiss explanation' : 'Explain with AI'}
+                        className={clsx(
+                          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                          isLoading
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : isActive
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'
+                        )}
+                      >
+                        <Sparkles size={12} />
+                        {isLoading ? 'Thinking…' : isActive ? 'Dismiss' : 'Explain'}
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* Inline explanation panel — rendered only when active */}
+                  {isActive && (
+                    <ExplainPanel
+                      key={`explain-${row.batch_id}`}
+                      row={row}
+                      state={state}
+                      onRequest={() => handleExplain(row)}
+                      onDismiss={() => handleDismiss(row.batch_id)}
+                    />
+                  )}
+                </>
+              );
+            })}
           </tbody>
         </table>
       </div>

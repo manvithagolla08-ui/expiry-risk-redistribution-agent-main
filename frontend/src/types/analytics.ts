@@ -69,3 +69,23 @@ export interface WhatIfSimulationResponse {
   waste_after_transfer: number;
   waste_avoided: number;
 }
+
+// Gemini Explanation
+export interface ExplainInventoryRequest {
+  product_name: string;
+  warehouse_name: string;
+  quantity?: number;
+  days_to_expiry: number;
+  risk_score: number;
+  risk_level: string;
+  potential_excess?: number;
+  forecast_daily_demand?: number;
+  recommended_transfer?: number;
+  destination_warehouse?: string;
+  destination_demand?: number;
+  transfer_distance_km?: number;
+}
+
+export interface ExplainInventoryResponse {
+  explanation: string;
+}

@@ -6,7 +6,9 @@ import type {
   ForecastResponse,
   RedistributionResponse,
   WhatIfSimulationRequest,
-  WhatIfSimulationResponse
+  WhatIfSimulationResponse,
+  ExplainInventoryRequest,
+  ExplainInventoryResponse,
 } from '../types/analytics';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -41,10 +43,17 @@ export const api = {
   getRecommendations: () => 
     fetchJson<RedistributionResponse>('/analytics/recommend-redistribution', { method: 'POST' }),
   
-  simulateTransfer: (request: WhatIfSimulationRequest) => 
+  simulateTransfer: (request: WhatIfSimulationRequest) =>
     fetchJson<WhatIfSimulationResponse>('/analytics/simulate-transfer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request)
+    }),
+
+  explainInventory: (data: ExplainInventoryRequest) =>
+    fetchJson<ExplainInventoryResponse>('/analytics/explain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     }),
 };
