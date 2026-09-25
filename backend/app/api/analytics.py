@@ -3,10 +3,12 @@ from typing import List, Dict, Any
 from uuid import UUID
 
 from app.models.analytics import (
-    ForecastResponse, RiskScoreResponse, 
-    RedistributionResponse, WhatIfSimulationRequest, WhatIfSimulationResponse
+    ForecastResponse, RiskScoreResponse,
+    RedistributionResponse, WhatIfSimulationRequest, WhatIfSimulationResponse,
+    ExplainRequest, ExplainResponse,
 )
 from app.services import crud
+from app.services.gemini import generate_inventory_explanation
 from app.analytics.forecasting.forecaster import calculate_forecast
 from app.analytics.risk.scorer import calculate_risk_score
 from app.analytics.redistribution.engine import recommend_transfers
@@ -128,3 +130,14 @@ def simulate_transfer(request: WhatIfSimulationRequest):
     )
     
     return sim_result
+
+
+@router.post("/explain", response_model=ExplainResponse)
+def explain_inventory(request: ExplainRequest):
+    """
+    Pass already-calculated inventory facts to Gemini for a human-readable
+    explanation. Gemini does NOT recalculate or modify any values.
+    """
+    inventory_data = request.model_dump(exclude_none=True)
+    explanation = generate_inventory_explanation(inventory_data)
+    return ExplainResponse(explanation=explanation)

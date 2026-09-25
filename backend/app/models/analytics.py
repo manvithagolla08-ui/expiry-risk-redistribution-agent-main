@@ -48,3 +48,21 @@ class WhatIfSimulationResponse(BaseModel):
     waste_before_transfer: float
     waste_after_transfer: float
     waste_avoided: float
+
+# Gemini Explanation Models
+class ExplainRequest(BaseModel):
+    product_name: str
+    warehouse_name: str
+    quantity: Optional[float] = None
+    days_to_expiry: int
+    risk_score: float
+    risk_level: str
+    potential_excess: Optional[float] = None
+    forecast_daily_demand: Optional[float] = None
+    recommended_transfer: Optional[int] = None
+    destination_warehouse: Optional[str] = None
+    destination_demand: Optional[float] = None
+    transfer_distance_km: Optional[float] = None
+
+class ExplainResponse(BaseModel):
+    explanation: str
