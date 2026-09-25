@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import type {
   Warehouse, Product, InventoryBatch, RiskScoreResponse, RedistributionRecommendation,
-  ForecastResponse
+  ForecastResponse, WhatIfSimulationResponse
 } from '../types/analytics';
 
 import { Sidebar } from '../components/dashboard/Sidebar';
@@ -35,6 +35,9 @@ export function Dashboard() {
   const [inventory, setInventory] = useState<InventoryBatch[]>([]);
   const [riskScores, setRiskScores] = useState<RiskScoreResponse[]>([]);
   const [recommendations, setRecommendations] = useState<RedistributionRecommendation[]>([]);
+
+  // Simulation lift-up: null = never run, number = last successful waste_avoided
+  const [lastSimResult, setLastSimResult] = useState<WhatIfSimulationResponse | null>(null);
 
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
@@ -219,8 +222,12 @@ export function Dashboard() {
                 />
                 <KPICard
                   title="Waste Avoided"
-                  value="No sim run"
-                  subtitle="Run simulation to estimate"
+                  value={
+                    lastSimResult === null
+                      ? 'No simulation yet'
+                      : Math.max(0, Math.round(lastSimResult.waste_avoided)).toLocaleString()
+                  }
+                  subtitle={lastSimResult === null ? 'Run simulation to estimate' : 'units saved by last transfer'}
                   icon={Leaf}
                   isLoading={isLoading}
                 />
@@ -262,7 +269,10 @@ export function Dashboard() {
               </div>
               {/* simulation-section */}
               <div id="simulation-section">
-                <SimulationCard recommendations={recTableData} />
+                <SimulationCard
+                  recommendations={recTableData}
+                  onSimulationSuccess={(result) => setLastSimResult(result)}
+                />
               </div>
             </div>
 
