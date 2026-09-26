@@ -16,6 +16,8 @@ import { DemandForecastChart } from '../components/dashboard/DemandForecastChart
 import { RedistributionRecommendations } from '../components/dashboard/RedistributionRecommendations';
 import type { RecommendationRowData } from '../components/dashboard/RedistributionRecommendations';
 import { SimulationCard } from '../components/dashboard/SimulationCard';
+import { WarehouseIntelligence } from '../components/dashboard/WarehouseIntelligence';
+import type { WarehouseStats } from '../components/dashboard/WarehouseIntelligence';
 
 import { Package, AlertTriangle, TrendingDown, Leaf } from 'lucide-react';
 
@@ -130,6 +132,83 @@ export function Dashboard() {
     );
   }, [riskTableData, searchQuery]);
 
+  // Warehouse-level aggregations — all derived from existing state, no new API calls
+  const warehouseStats: WarehouseStats[] = useMemo(() => {
+    return warehouses.map((wh) => {
+      const whId = wh.id;
+
+      // ── Inventory ─────────────────────────────────────────────────────────
+      const whInventory = inventory.filter((b) => b.warehouse_id === whId);
+      const current_inventory = whInventory.reduce((s, b) => s + b.quantity, 0);
+      const capacity = wh.capacity;
+      // Guard against capacity <= 0 to prevent NaN / Infinity
+      const utilisation_percent = capacity > 0
+        ? (current_inventory / capacity) * 100
+        : 0;
+
+      // ── Risk ──────────────────────────────────────────────────────────────
+      const whRisk = riskScores.filter((r) => r.warehouse_id === whId);
+      const atRiskRecords = whRisk.filter(
+        (r) => r.risk_level === 'HIGH' || r.risk_level === 'CRITICAL',
+      );
+      const at_risk_batches = atRiskRecords.length;
+
+      // at_risk_quantity uses riskTableData which already joins quantity from inventory
+      const at_risk_quantity = riskTableData
+        .filter(
+          (r) =>
+            r.warehouse_id === whId &&
+            (r.risk_level === 'HIGH' || r.risk_level === 'CRITICAL'),
+        )
+        .reduce((s, r) => s + r.quantity, 0);
+
+      const potential_excess = whRisk.reduce(
+        (s, r) => s + Math.max(0, r.potential_excess),
+        0,
+      );
+
+      const average_risk_score =
+        whRisk.length > 0
+          ? whRisk.reduce((s, r) => s + r.risk_score, 0) / whRisk.length
+          : 0;
+
+      // ── Redistribution ────────────────────────────────────────────────────
+      const transfersOut = recommendations.filter(
+        (r) => r.source_warehouse_id === whId,
+      );
+      const transfers_out_count = transfersOut.length;
+      const transfers_out_quantity = transfersOut.reduce(
+        (s, r) => s + r.recommended_quantity,
+        0,
+      );
+
+      const transfersIn = recommendations.filter(
+        (r) => r.destination_warehouse_id === whId,
+      );
+      const transfers_in_count = transfersIn.length;
+      const transfers_in_quantity = transfersIn.reduce(
+        (s, r) => s + r.recommended_quantity,
+        0,
+      );
+
+      return {
+        warehouse_id: whId,
+        warehouse_name: wh.name,
+        capacity,
+        current_inventory,
+        utilisation_percent,
+        at_risk_batches,
+        at_risk_quantity,
+        potential_excess,
+        average_risk_score,
+        transfers_out_count,
+        transfers_out_quantity,
+        transfers_in_count,
+        transfers_in_quantity,
+      };
+    });
+  }, [warehouses, inventory, riskScores, riskTableData, recommendations]);
+
   // Fetch forecast whenever both product and warehouse are selected
   useEffect(() => {
     if (!selectedProductId || !selectedWarehouseId) {
@@ -157,6 +236,7 @@ export function Dashboard() {
       demand: 'demand-section',
       redistribution: 'redistribution-section',
       simulation: 'simulation-section',
+      warehouses: 'warehouses-section',
     };
     const sectionId = sectionMap[activeTab];
     if (sectionId) {
@@ -236,6 +316,11 @@ export function Dashboard() {
                   isLoading={isLoading}
                 />
               </div>
+            </div>
+
+            {/* Warehouse Intelligence — warehouses-section */}
+            <div id="warehouses-section">
+              <WarehouseIntelligence data={warehouseStats} isLoading={isLoading} />
             </div>
 
             {/* Top Charts Row */}

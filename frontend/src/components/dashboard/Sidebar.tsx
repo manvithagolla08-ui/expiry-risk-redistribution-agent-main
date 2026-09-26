@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, TrendingUp, RefreshCw, BarChart2, Package2 } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, TrendingUp, RefreshCw, BarChart2, Package2, Warehouse } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface SidebarProps {
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: 'demand',         label: 'Demand Forecast', icon: TrendingUp      },
   { id: 'redistribution', label: 'Redistribution',  icon: RefreshCw       },
   { id: 'simulation',     label: 'Simulation',      icon: BarChart2       },
+  { id: 'warehouses',     label: 'Warehouses',      icon: Warehouse       },
 ];
 
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
